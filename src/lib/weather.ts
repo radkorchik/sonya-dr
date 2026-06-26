@@ -1,4 +1,4 @@
-import weatherData from '../../../content/Пожелания_по_погоде.json'
+import weatherData from '../../content/Пожелания_по_погоде.json'
 import { fillPlaceholders } from './placeholders'
 import { getMoscowDateKey } from './time'
 import { pickBySeed } from './seed'

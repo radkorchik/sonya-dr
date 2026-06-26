@@ -1,10 +1,10 @@
-import greetings from '../../../content/Приветствия.json'
-import compliments from '../../../content/Комплименты.json'
-import leshaPhrases from '../../../content/Что_сказал_бы_Леша.json'
-import missYou from '../../../content/Скучаю.json'
-import moods from '../../../content/Настроения_дня.json'
-import tasks from '../../../content/Задания_заботы.json'
-import goodnight from '../../../content/Перед_сном.json'
+import greetings from '../../content/Приветствия.json'
+import compliments from '../../content/Комплименты.json'
+import leshaPhrases from '../../content/Что_сказал_бы_Леша.json'
+import missYou from '../../content/Скучаю.json'
+import moods from '../../content/Настроения_дня.json'
+import tasks from '../../content/Задания_заботы.json'
+import goodnight from '../../content/Перед_сном.json'
 
 export { greetings, compliments, leshaPhrases, missYou, moods, tasks, goodnight }
 
