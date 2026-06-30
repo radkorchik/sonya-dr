@@ -1,10 +1,13 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { PageBack } from '@/components/ui/PageBack'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
 import { Sticker } from '@/components/ui/Sticker'
 import { getMissYouPool } from '@/data/content'
 import { pickRandomPhrase } from '@/lib/placeholders'
+import { PhraseRevealCard } from '@/components/motion/PhraseReveal'
+import { popIn } from '@/components/motion/presets'
 
 export default function MissYou() {
   const [shown, setShown] = useState(false)
@@ -26,8 +29,20 @@ export default function MissYou() {
           <PillButton onClick={handleClick}>Я скучаю…</PillButton>
         ) : (
           <div>
-            <img src="/stickers/sticker8.webp" alt="Обнимашки" className="rounded-2xl mx-auto max-h-48 object-contain mb-4" />
-            <GlassCard pink className="text-lg mb-4 leading-relaxed" animate={false} key={message}>{message}</GlassCard>
+            <motion.img
+              key={`img-${message}`}
+              src="/stickers/sticker8.webp"
+              alt="Обнимашки"
+              className="rounded-2xl mx-auto max-h-48 object-contain mb-4"
+              initial={popIn.initial}
+              animate={popIn.animate}
+              transition={popIn.transition}
+            />
+            <PhraseRevealCard text={message}>
+              <GlassCard pink className="text-lg mb-4 leading-relaxed" animate={false}>
+                {message}
+              </GlassCard>
+            </PhraseRevealCard>
             <PillButton variant="secondary" className="mt-4" onClick={handleClick}>Ещё раз</PillButton>
           </div>
         )}

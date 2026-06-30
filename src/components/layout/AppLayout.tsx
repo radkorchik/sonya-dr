@@ -30,7 +30,7 @@ function LayoutBody() {
   const hasMiniPlayer = !!player?.tale && player.miniVisible
 
   return (
-    <>
+    <div className="app-body">
       <FallingParticles />
       <Toast />
       {!splashDone && <WelcomeSplash onDone={() => setSplashDone(true)} />}
@@ -43,7 +43,7 @@ function LayoutBody() {
         </main>
       </PullToRefresh>
       <BottomNav />
-    </>
+    </div>
   )
 }
 

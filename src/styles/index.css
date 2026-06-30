@@ -37,6 +37,14 @@
     max-height: 100dvh;
     overflow: hidden;
   }
+  .app-body {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
   .app-scroll {
     flex: 1 1 auto;
     min-height: 0;
@@ -61,17 +69,18 @@
     @apply border border-white/50 shadow-glass;
   }
   .page-container {
-    @apply pb-24 px-4 max-w-lg mx-auto;
+    @apply px-4 max-w-lg mx-auto;
     padding-top: max(calc(env(safe-area-inset-top) + 2.5rem), 3.25rem);
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
   }
   .page-container--fit {
     padding-top: max(calc(env(safe-area-inset-top) + 2.5rem), 3.25rem);
-    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
     min-height: auto;
     overflow-x: hidden;
   }
   .has-mini-player .page-container {
-    padding-bottom: calc(8.75rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(7.5rem + env(safe-area-inset-bottom, 0px));
   }
   .cat-sway {
     animation: cat-sway 4.5s ease-in-out infinite;

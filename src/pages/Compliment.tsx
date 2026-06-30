@@ -6,6 +6,7 @@ import { Sticker } from '@/components/ui/Sticker'
 import { getComplimentsPool } from '@/data/content'
 import { pickPhrase, pickRandomPhrase } from '@/lib/placeholders'
 import { getMoscowDateKey } from '@/lib/time'
+import { PhraseRevealCard } from '@/components/motion/PhraseReveal'
 
 export default function Compliment() {
   const dateKey = getMoscowDateKey()
@@ -32,9 +33,11 @@ export default function Compliment() {
           <PillButton onClick={handleReveal}>Сегодняшний комплимент</PillButton>
         ) : (
           <div>
-            <GlassCard pink className="text-lg leading-relaxed" animate={false} key={text}>
-              {text}
-            </GlassCard>
+            <PhraseRevealCard text={text}>
+              <GlassCard pink className="text-lg leading-relaxed" animate={false}>
+                {text}
+              </GlassCard>
+            </PhraseRevealCard>
             <PillButton variant="secondary" className="mt-4" onClick={handleAnother}>
               Ещё комплимент
             </PillButton>
