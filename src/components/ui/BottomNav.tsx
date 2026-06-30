@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { NavLink, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Home, BookOpen, Cat, Gamepad2, Heart } from 'lucide-react'
@@ -11,12 +12,12 @@ const items = [
   { to: '/favorites', icon: Heart, label: 'Избранное' },
 ]
 
-export function BottomNav() {
+function BottomNavBar() {
   const { pathname } = useLocation()
 
   return (
     <nav
-      className="app-nav fixed bottom-0 left-0 right-0 z-50 pb-safe touch-none"
+      className="app-nav pb-safe touch-none"
       style={{
         background: 'rgba(255, 255, 255, 0.88)',
         backdropFilter: 'blur(20px) saturate(180%)',
@@ -49,5 +50,17 @@ export function BottomNav() {
         })}
       </div>
     </nav>
+  )
+}
+
+export function BottomNav() {
+  return createPortal(
+    <div
+      className="fixed bottom-0 left-0 right-0 z-50 pointer-events-auto"
+      style={{ transform: 'translateZ(0)' }}
+    >
+      <BottomNavBar />
+    </div>,
+    document.body,
   )
 }

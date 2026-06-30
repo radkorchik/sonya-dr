@@ -8,6 +8,12 @@
     height: 100%;
     background-color: #FFCFE0;
   }
+  html.app-mounted,
+  html.app-mounted body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
   body {
     @apply font-body text-ink-700 antialiased;
     min-height: 100dvh;
@@ -15,6 +21,10 @@
   }
   #root {
     min-height: 100dvh;
+  }
+  html.app-mounted #root {
+    height: 100%;
+    overflow: hidden;
   }
   .app-bg {
     position: fixed;
@@ -30,12 +40,13 @@
 
 @layer components {
   .app-shell {
-    position: relative;
+    position: fixed;
+    inset: 0;
+    width: 100%;
     display: flex;
     flex-direction: column;
-    height: 100dvh;
-    max-height: 100dvh;
     overflow: hidden;
+    overscroll-behavior: none;
   }
   .app-body {
     position: relative;
@@ -44,6 +55,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    overscroll-behavior: none;
   }
   .app-scroll {
     flex: 1 1 auto;
@@ -51,7 +63,10 @@
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: auto;
+    overscroll-behavior-y: contain;
+  }
+  .app-scroll > * {
+    min-height: 100%;
   }
   .app-nav {
     flex-shrink: 0;
@@ -70,13 +85,16 @@
   }
   .page-container {
     @apply px-4 max-w-lg mx-auto;
+    min-height: 100%;
+    box-sizing: border-box;
     padding-top: max(calc(env(safe-area-inset-top) + 2.5rem), 3.25rem);
     padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
   }
   .page-container--fit {
     padding-top: max(calc(env(safe-area-inset-top) + 2.5rem), 3.25rem);
     padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
-    min-height: auto;
+    min-height: 100%;
+    box-sizing: border-box;
     overflow-x: hidden;
   }
   .has-mini-player .page-container {

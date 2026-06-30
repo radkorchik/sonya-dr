@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { BottomNav } from '@/components/ui/BottomNav'
@@ -14,6 +14,7 @@ function AnimatedOutlet() {
   return (
     <motion.div
       key={location.pathname}
+      className="min-h-full"
       initial={pageTransition.initial}
       animate={pageTransition.animate}
       transition={pageTransition.transition}
@@ -48,6 +49,11 @@ function LayoutBody() {
 }
 
 export function AppLayout() {
+  useEffect(() => {
+    document.documentElement.classList.add('app-mounted')
+    return () => document.documentElement.classList.remove('app-mounted')
+  }, [])
+
   return (
     <div className="app-shell">
       <div className="app-bg" aria-hidden />
