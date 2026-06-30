@@ -3,17 +3,29 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Play, Pause, SkipBack, SkipForward, Pencil, Trash2 } from 'lucide-react'
 import { getTale, deleteTale, getAllTales, type Tale } from '@/lib/talesApi'
-import { getPlayHistory } from '@/lib/localData'
+import { getFavorites, getPlayHistory } from '@/lib/localData'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { PageBack } from '@/components/ui/PageBack'
 import { FavoriteButton } from '@/components/ui/FavoriteButton'
 import { Sticker } from '@/components/ui/Sticker'
 import { AudioProgress } from '@/components/player/AudioProgress'
 import { VolumeSlider } from '@/components/player/VolumeSlider'
-import { usePlayer, PLAYER_SPEEDS } from '@/components/player/PlayerContext'
+import { usePlayer, PLAYER_SPEEDS, type PlayerTale, type PlaylistMode } from '@/components/player/PlayerContext'
 import { useToastStore } from '@/stores/toastStore'
 import { FadeIn } from '@/components/motion/FadeIn'
 import { tapSpring } from '@/components/motion/presets'
+
+type NavState = { autoplay?: boolean; playlistMode?: PlaylistMode; fromFavorites?: boolean } | null
+
+function toPlayerTale(t: Tale): PlayerTale {
+  return {
+    id: t.id,
+    title: t.title,
+    coverUrl: t.coverUrl,
+    audioUrl: t.audioUrl,
+    durationSec: t.durationSec,
+  }
+}
 
 export default function TalePlayer() {
   const { id } = useParams<{ id: string }>()
@@ -22,6 +34,8 @@ export default function TalePlayer() {
   const showToast = useToastStore(s => s.show)
   const player = usePlayer()
   const [tale, setTale] = useState<Tale | null>(null)
+  const [allTales, setAllTales] = useState<Tale[]>([])
+  const [previewSeek, setPreviewSeek] = useState<number | null>(null)
   const [sleepMin, setSleepMin] = useState<number | null>(null)
   const [speedIdx, setSpeedIdx] = useState(() => {
     const idx = PLAYER_SPEEDS.indexOf(player.speed as typeof PLAYER_SPEEDS[number])
@@ -31,48 +45,54 @@ export default function TalePlayer() {
 
   useEffect(() => {
     getAllTales().then(tales => {
-      player.setTalesList(tales.map(t => ({
-        id: t.id,
-        title: t.title,
-        coverUrl: t.coverUrl,
-        audioUrl: t.audioUrl,
-        durationSec: t.durationSec,
-      })))
+      setAllTales(tales)
+      player.setTalesList(tales.map(toPlayerTale))
+      const favIds = getFavorites().filter(f => f.type === 'tale').map(f => f.itemId)
+      const favTales = favIds
+        .map(fid => tales.find(t => t.id === fid))
+        .filter((t): t is Tale => !!t)
+        .map(toPlayerTale)
+      player.setFavoritesList(favTales)
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!id) return
+    setPreviewSeek(null)
     getTale(id).then(t => {
       if (!t) return
       setTale(t)
-      const hist = getPlayHistory()[id]
-      const seekTo = hist?.positionSec ?? 0
-      player.loadTale({
-        id: t.id,
-        title: t.title,
-        coverUrl: t.coverUrl,
-        audioUrl: t.audioUrl,
-        durationSec: t.durationSec,
-      }, { seekTo, autoplay: !!(location.state as { autoplay?: boolean } | null)?.autoplay })
-      if ((location.state as { autoplay?: boolean } | null)?.autoplay) {
-        navigate(location.pathname, { replace: true, state: null })
+      const nav = location.state as NavState
+      if (nav?.autoplay) {
+        const hist = getPlayHistory()[id]
+        const seekTo = hist?.positionSec ?? 0
+        player.loadTale(toPlayerTale(t), {
+          seekTo,
+          autoplay: true,
+          playlistMode: nav.playlistMode ?? (nav.fromFavorites ? 'favorites' : 'all'),
+        })
+        navigate(location.pathname, { replace: true, state: nav.fromFavorites ? { fromFavorites: true } : null })
       }
     })
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const resolvePlaylistMode = (): PlaylistMode => {
+    const nav = location.state as NavState
+    if (nav?.playlistMode) return nav.playlistMode
+    if (nav?.fromFavorites) return 'favorites'
+    return 'all'
+  }
 
   const handleToggle = () => {
     if (!tale) return
     if (!player.tale || player.tale.id !== tale.id) {
       const hist = getPlayHistory()[tale.id]
-      const seekTo = hist?.positionSec ?? 0
-      player.loadTale({
-        id: tale.id,
-        title: tale.title,
-        coverUrl: tale.coverUrl,
-        audioUrl: tale.audioUrl,
-        durationSec: tale.durationSec,
-      }, { seekTo, autoplay: true })
+      const seekTo = previewSeek ?? hist?.positionSec ?? 0
+      player.loadTale(toPlayerTale(tale), {
+        seekTo,
+        autoplay: true,
+        playlistMode: resolvePlaylistMode(),
+      })
       return
     }
     player.toggle()
@@ -83,24 +103,50 @@ export default function TalePlayer() {
   }, [speedIdx]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!sleepMin || !player.playing) return
-    const t = setTimeout(() => {
-      player.pause()
-      setSleepMin(null)
-    }, sleepMin * 60 * 1000)
-    return () => clearTimeout(t)
-  }, [sleepMin, player.playing]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (!sleepMin) return
+    const deadline = Date.now() + sleepMin * 60 * 1000
+    const timer = window.setInterval(() => {
+      if (Date.now() >= deadline) {
+        player.pause()
+        player.disableAutoplay()
+        setSleepMin(null)
+      }
+    }, 500)
+    return () => clearInterval(timer)
+  }, [sleepMin]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const goBrowse = (dir: -1 | 1) => {
+    if (!tale || allTales.length === 0) return
+    const idx = allTales.findIndex(t => t.id === tale.id)
+    if (idx < 0) return
+    const next = allTales[(idx + dir + allTales.length) % allTales.length]
+    const nav = location.state as NavState
+    navigate(`/tales/${next.id}`, { state: nav?.fromFavorites ? { fromFavorites: true } : null })
+  }
+
+  const handleNext = () => {
+    if (player.tale?.id === tale?.id) player.nextTale()
+    else goBrowse(1)
+  }
+
+  const handlePrev = () => {
+    if (player.tale?.id === tale?.id) player.prevTale()
+    else goBrowse(-1)
+  }
 
   const handleLeft = () => {
     const now = Date.now()
     if (now - leftTapRef.current < 400) {
-      player.prevTale()
+      handlePrev()
       leftTapRef.current = 0
       return
     }
     leftTapRef.current = now
     setTimeout(() => {
-      if (leftTapRef.current === now) player.restart()
+      if (leftTapRef.current === now) {
+        if (player.tale?.id === tale?.id) player.restart()
+        else setPreviewSeek(0)
+      }
     }, 420)
   }
 
@@ -118,7 +164,7 @@ export default function TalePlayer() {
 
   const isActiveTale = player.tale?.id === tale.id
   const savedPosition = getPlayHistory()[tale.id]?.positionSec ?? 0
-  const current = isActiveTale ? player.current : savedPosition
+  const current = isActiveTale ? player.current : (previewSeek ?? savedPosition)
   const duration = (isActiveTale ? player.duration : null) || tale.durationSec
   const playing = isActiveTale && player.playing
 
@@ -166,13 +212,7 @@ export default function TalePlayer() {
         duration={duration}
         onSeek={sec => {
           if (!isActiveTale) {
-            player.loadTale({
-              id: tale.id,
-              title: tale.title,
-              coverUrl: tale.coverUrl,
-              audioUrl: tale.audioUrl,
-              durationSec: tale.durationSec,
-            }, { seekTo: sec })
+            setPreviewSeek(sec)
             return
           }
           player.seek(sec)
@@ -191,7 +231,7 @@ export default function TalePlayer() {
         >
           {playing ? <Pause size={28} /> : <Play size={28} className="ml-1" />}
         </motion.button>
-        <motion.button type="button" onClick={player.nextTale} className="p-2 text-ink-600" aria-label="Следующая сказка" {...tapSpring}>
+        <motion.button type="button" onClick={handleNext} className="p-2 text-ink-600" aria-label="Следующая сказка" {...tapSpring}>
           <SkipForward size={24} />
         </motion.button>
       </div>
@@ -204,7 +244,7 @@ export default function TalePlayer() {
           <motion.button
             key={m}
             type="button"
-            onClick={() => setSleepMin(m)}
+            onClick={() => setSleepMin(prev => (prev === m ? null : m))}
             className={`glass rounded-full px-4 py-2 text-sm min-h-[44px] ${sleepMin === m ? 'ring-2 ring-pink-400' : ''}`}
             {...tapSpring}
           >

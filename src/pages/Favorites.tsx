@@ -9,6 +9,7 @@ import { MediaViewer } from '@/components/ui/MediaViewer'
 import { getFavorites, saveFavorites, type FavoriteItem } from '@/lib/localData'
 import { getAllTales, type Tale } from '@/lib/talesApi'
 import { resolvePreviewUrl, isIdbPreview } from '@/lib/mediaStorage'
+import { usePlayerOptional } from '@/components/player/PlayerContext'
 import { tapSpring } from '@/components/motion/presets'
 
 function MediaThumb({ fav, onOpen }: { fav: FavoriteItem; onOpen: () => void }) {
@@ -67,19 +68,21 @@ function TaleRow({ fav, tales, onRemove }: { fav: FavoriteItem; tales: Tale[]; o
 
   return (
     <GlassCard className="flex items-center gap-3 p-3">
-      <Link to={`/tales/${fav.itemId}`} className="flex items-center gap-3 flex-1 min-w-0">
-        {cover ? (
-          <img src={cover} alt="" className="w-14 h-14 rounded-xl object-cover shrink-0" />
-        ) : (
-          <Sticker name="envelope" size={40} />
-        )}
-        <div className="min-w-0">
-          <p className="font-semibold text-ink-900 truncate">
-            {fav.title ?? tales.find(t => t.id === fav.itemId)?.title ?? 'Сказка'}
-          </p>
-          <p className="text-xs text-ink-500 mt-0.5">Сказка</p>
-        </div>
-      </Link>
+      <motion.div className="flex items-center gap-3 flex-1 min-w-0" {...tapSpring}>
+        <Link to={`/tales/${fav.itemId}`} state={{ fromFavorites: true }} className="flex items-center gap-3 flex-1 min-w-0">
+          {cover ? (
+            <img src={cover} alt="" className="w-14 h-14 rounded-xl object-cover shrink-0" />
+          ) : (
+            <Sticker name="envelope" size={40} />
+          )}
+          <div className="min-w-0">
+            <p className="font-semibold text-ink-900 truncate">
+              {fav.title ?? tales.find(t => t.id === fav.itemId)?.title ?? 'Сказка'}
+            </p>
+            <p className="text-xs text-ink-500 mt-0.5">Сказка</p>
+          </div>
+        </Link>
+      </motion.div>
       <button type="button" onClick={onRemove} className="p-2 text-ink-400 hover:text-pink-500 transition-colors" aria-label="Удалить">
         <Trash2 size={18} />
       </button>
@@ -92,11 +95,28 @@ export default function Favorites() {
   const [tales, setTales] = useState<Tale[]>([])
   const [filter, setFilter] = useState<'all' | 'tale' | 'image' | 'gif'>('all')
   const [viewer, setViewer] = useState<{ src: string; alt: string } | null>(null)
+  const player = usePlayerOptional()
 
   useEffect(() => {
     setFavs(getFavorites())
-    getAllTales().then(setTales)
-  }, [])
+    getAllTales().then(allTales => {
+      setTales(allTales)
+      if (!player) return
+      const favIds = getFavorites().filter(f => f.type === 'tale').map(f => f.itemId)
+      player.setFavoritesList(
+        favIds
+          .map(id => allTales.find(t => t.id === id))
+          .filter((t): t is Tale => !!t)
+          .map(t => ({
+            id: t.id,
+            title: t.title,
+            coverUrl: t.coverUrl,
+            audioUrl: t.audioUrl,
+            durationSec: t.durationSec,
+          })),
+      )
+    })
+  }, [player])
 
   const remove = (id: string) => {
     const next = favs.filter(f => f.id !== id)

@@ -11,6 +11,8 @@ export interface PlayerTale {
   durationSec: number
 }
 
+export type PlaylistMode = 'all' | 'favorites'
+
 interface PlayerState {
   tale: PlayerTale | null
   playing: boolean
@@ -22,8 +24,9 @@ interface PlayerState {
 }
 
 export interface PlayerApi extends PlayerState {
-  loadTale: (tale: PlayerTale, opts?: { autoplay?: boolean; seekTo?: number }) => void
+  loadTale: (tale: PlayerTale, opts?: { autoplay?: boolean; seekTo?: number; playlistMode?: PlaylistMode }) => void
   setTalesList: (tales: PlayerTale[]) => void
+  setFavoritesList: (tales: PlayerTale[]) => void
   toggle: () => void
   play: () => void
   pause: () => void
@@ -35,6 +38,7 @@ export interface PlayerApi extends PlayerState {
   setSpeed: (s: number) => void
   hideMini: () => void
   stop: () => void
+  disableAutoplay: () => void
 }
 
 const SPEEDS = [0.75, 1, 1.25]
@@ -48,7 +52,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const lastSave = useRef(0)
   const taleIdRef = useRef<string | null>(null)
   const talesListRef = useRef<PlayerTale[]>([])
+  const favoritesListRef = useRef<PlayerTale[]>([])
   const taleRef = useRef<PlayerTale | null>(null)
+  const autoplayEnabledRef = useRef(false)
+  const playlistModeRef = useRef<PlaylistMode>('all')
   const [state, setState] = useState<PlayerState>(() => ({
     tale: null,
     playing: false,
@@ -79,6 +86,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     talesListRef.current = tales
   }, [])
 
+  const setFavoritesList = useCallback((tales: PlayerTale[]) => {
+    favoritesListRef.current = tales
+  }, [])
+
   const ensureAudioLoaded = useCallback((tale: PlayerTale, seekTo = 0) => {
     const audio = audioRef.current
     if (!audio) return false
@@ -98,7 +109,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     return true
   }, [])
 
-  const loadTale = useCallback((tale: PlayerTale, opts?: { autoplay?: boolean; seekTo?: number }) => {
+  const loadTale = useCallback((tale: PlayerTale, opts?: { autoplay?: boolean; seekTo?: number; playlistMode?: PlaylistMode }) => {
     const audio = audioRef.current
     if (!audio) return
 
@@ -108,6 +119,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (!same && taleIdRef.current && audio.src) {
       savePlayPosition(taleIdRef.current, Math.floor(audio.currentTime))
       audio.pause()
+    }
+
+    if (opts?.autoplay) {
+      autoplayEnabledRef.current = true
+      if (opts.playlistMode) playlistModeRef.current = opts.playlistMode
     }
 
     if (same) {
@@ -135,6 +151,34 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       duration: tale.durationSec,
     }))
   }, [ensureAudioLoaded])
+
+  const playNextInPlaylist = useCallback(() => {
+    if (!autoplayEnabledRef.current) {
+      setState(p => ({ ...p, playing: false }))
+      return
+    }
+
+    const mode = playlistModeRef.current
+    const list = mode === 'favorites' ? favoritesListRef.current : talesListRef.current
+    const currentId = taleIdRef.current
+    if (!currentId || list.length === 0) {
+      setState(p => ({ ...p, playing: false }))
+      return
+    }
+
+    const idx = list.findIndex(t => t.id === currentId)
+    if (idx < 0 || idx >= list.length - 1) {
+      setState(p => ({ ...p, playing: false }))
+      return
+    }
+
+    const next = list[idx + 1]
+    loadTale(next, { autoplay: true, seekTo: 0, playlistMode: mode })
+    navigate(`/tales/${next.id}`, { replace: true, state: { autoplay: true, playlistMode: mode } })
+  }, [loadTale, navigate])
+
+  const playNextRef = useRef(playNextInPlaylist)
+  useEffect(() => { playNextRef.current = playNextInPlaylist }, [playNextInPlaylist])
 
   const play = useCallback(() => {
     const audio = audioRef.current
@@ -176,14 +220,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [seek, play])
 
   const goSibling = useCallback((dir: -1 | 1) => {
-    const tales = talesListRef.current
+    const mode = playlistModeRef.current
+    const list = mode === 'favorites' ? favoritesListRef.current : talesListRef.current
     const currentId = taleIdRef.current
-    if (!currentId || tales.length === 0) return
-    const idx = tales.findIndex(t => t.id === currentId)
+    if (!currentId || list.length === 0) return
+    const idx = list.findIndex(t => t.id === currentId)
     if (idx < 0) return
-    const next = tales[(idx + dir + tales.length) % tales.length]
+    const next = list[(idx + dir + list.length) % list.length]
     const wasPlaying = !!audioRef.current && !audioRef.current.paused
-    navigate(`/tales/${next.id}`, { state: { autoplay: wasPlaying } })
+    navigate(`/tales/${next.id}`, { state: { autoplay: wasPlaying, playlistMode: mode } })
   }, [navigate])
 
   const nextTale = useCallback(() => goSibling(1), [goSibling])
@@ -205,6 +250,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setState(p => ({ ...p, playing: false, miniVisible: false }))
   }, [])
 
+  const disableAutoplay = useCallback(() => {
+    autoplayEnabledRef.current = false
+  }, [])
+
   const stop = useCallback(() => {
     const audio = audioRef.current
     if (audio) {
@@ -213,6 +262,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.load()
     }
     taleIdRef.current = null
+    autoplayEnabledRef.current = false
+    playlistModeRef.current = 'all'
     setState(p => ({ ...p, tale: null, playing: false, current: 0, duration: 0, miniVisible: false }))
   }, [])
 
@@ -220,6 +271,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     ...state,
     loadTale,
     setTalesList,
+    setFavoritesList,
     toggle,
     play,
     pause,
@@ -231,7 +283,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setSpeed,
     hideMini,
     stop,
-  }), [state, loadTale, setTalesList, toggle, play, pause, seek, restart, nextTale, prevTale, setVolume, setSpeed, hideMini, stop])
+    disableAutoplay,
+  }), [state, loadTale, setTalesList, setFavoritesList, toggle, play, pause, seek, restart, nextTale, prevTale, setVolume, setSpeed, hideMini, stop, disableAutoplay])
 
   return (
     <PlayerContext.Provider value={api}>
@@ -253,7 +306,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         onPlay={() => setState(p => ({ ...p, playing: true, miniVisible: true }))
         }
         onPause={() => setState(p => ({ ...p, playing: false }))}
-        onEnded={() => setState(p => ({ ...p, playing: false }))}
+        onEnded={() => {
+          const tid = taleIdRef.current
+          if (tid) savePlayPosition(tid, 0)
+          playNextRef.current()
+        }}
       />
       {children}
       {state.tale && state.miniVisible && <MiniPlayerBar api={api} />}
