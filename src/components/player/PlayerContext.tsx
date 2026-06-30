@@ -56,7 +56,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     duration: 0,
     volume: Number(localStorage.getItem(VOLUME_KEY) ?? 0.85),
     speed: 1,
-    miniVisible: true,
+    miniVisible: false,
   }))
 
   useEffect(() => {
@@ -102,17 +102,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const audio = audioRef.current
     if (!audio) return
 
-    taleIdRef.current = tale.id
     const seek = opts?.seekTo ?? 0
-    const same = taleRef.current?.id === tale.id
+    const same = taleIdRef.current === tale.id && !!audio.src
 
-    if (same && audio.src) {
+    if (!same && taleIdRef.current && audio.src) {
+      savePlayPosition(taleIdRef.current, Math.floor(audio.currentTime))
+      audio.pause()
+    }
+
+    if (same) {
       if (opts?.seekTo != null) audio.currentTime = opts.seekTo
       if (opts?.autoplay) void audio.play().catch(() => {})
       setState(prev => ({
         ...prev,
         tale,
-        miniVisible: true,
+        miniVisible: opts?.autoplay ? true : prev.miniVisible,
         playing: opts?.autoplay ? true : prev.playing,
         current: opts?.seekTo ?? audio.currentTime,
       }))
@@ -125,7 +129,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setState(prev => ({
       ...prev,
       tale,
-      miniVisible: true,
+      miniVisible: !!opts?.autoplay,
       playing: !!opts?.autoplay,
       current: seek,
       duration: tale.durationSec,
@@ -178,7 +182,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const idx = tales.findIndex(t => t.id === currentId)
     if (idx < 0) return
     const next = tales[(idx + dir + tales.length) % tales.length]
-    navigate(`/tales/${next.id}`)
+    const wasPlaying = !!audioRef.current && !audioRef.current.paused
+    navigate(`/tales/${next.id}`, { state: { autoplay: wasPlaying } })
   }, [navigate])
 
   const nextTale = useCallback(() => goSibling(1), [goSibling])
@@ -208,7 +213,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.load()
     }
     taleIdRef.current = null
-    setState(p => ({ ...p, tale: null, playing: false, current: 0, duration: 0, miniVisible: true }))
+    setState(p => ({ ...p, tale: null, playing: false, current: 0, duration: 0, miniVisible: false }))
   }, [])
 
   const api = useMemo<PlayerApi>(() => ({

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Play, Pause, SkipBack, SkipForward, Pencil, Trash2 } from 'lucide-react'
 import { getTale, deleteTale, getAllTales, type Tale } from '@/lib/talesApi'
@@ -17,6 +17,7 @@ import { tapSpring } from '@/components/motion/presets'
 
 export default function TalePlayer() {
   const { id } = useParams<{ id: string }>()
+  const location = useLocation()
   const navigate = useNavigate()
   const showToast = useToastStore(s => s.show)
   const player = usePlayer()
@@ -47,21 +48,22 @@ export default function TalePlayer() {
       setTale(t)
       const hist = getPlayHistory()[id]
       const seekTo = hist?.positionSec ?? 0
-      if (!player.tale || player.tale.id !== t.id) {
-        player.loadTale({
-          id: t.id,
-          title: t.title,
-          coverUrl: t.coverUrl,
-          audioUrl: t.audioUrl,
-          durationSec: t.durationSec,
-        }, { seekTo })
+      player.loadTale({
+        id: t.id,
+        title: t.title,
+        coverUrl: t.coverUrl,
+        audioUrl: t.audioUrl,
+        durationSec: t.durationSec,
+      }, { seekTo, autoplay: !!(location.state as { autoplay?: boolean } | null)?.autoplay })
+      if ((location.state as { autoplay?: boolean } | null)?.autoplay) {
+        navigate(location.pathname, { replace: true, state: null })
       }
     })
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleToggle = () => {
     if (!tale) return
-    if (!player.tale) {
+    if (!player.tale || player.tale.id !== tale.id) {
       const hist = getPlayHistory()[tale.id]
       const seekTo = hist?.positionSec ?? 0
       player.loadTale({
@@ -114,7 +116,11 @@ export default function TalePlayer() {
     return <div className="page-container page-container--fit text-center text-ink-500">Загрузка…</div>
   }
 
-  const duration = player.duration || tale.durationSec
+  const isActiveTale = player.tale?.id === tale.id
+  const savedPosition = getPlayHistory()[tale.id]?.positionSec ?? 0
+  const current = isActiveTale ? player.current : savedPosition
+  const duration = (isActiveTale ? player.duration : null) || tale.durationSec
+  const playing = isActiveTale && player.playing
 
   return (
     <div className="page-container page-container--fit">
@@ -155,7 +161,23 @@ export default function TalePlayer() {
         </GlassCard>
       </FadeIn>
 
-      <AudioProgress current={player.current} duration={duration} onSeek={player.seek} />
+      <AudioProgress
+        current={current}
+        duration={duration}
+        onSeek={sec => {
+          if (!isActiveTale) {
+            player.loadTale({
+              id: tale.id,
+              title: tale.title,
+              coverUrl: tale.coverUrl,
+              audioUrl: tale.audioUrl,
+              durationSec: tale.durationSec,
+            }, { seekTo: sec })
+            return
+          }
+          player.seek(sec)
+        }}
+      />
 
       <div className="flex items-center justify-center gap-5 mb-5">
         <motion.button type="button" onClick={handleLeft} className="p-2 text-ink-600" aria-label="Сначала / двойной тап — предыдущая" {...tapSpring}>
@@ -167,7 +189,7 @@ export default function TalePlayer() {
           className="w-16 h-16 rounded-full bg-gradient-to-r from-pink-400 to-pink-500 text-white flex items-center justify-center shadow-glow"
           {...tapSpring}
         >
-          {player.playing ? <Pause size={28} /> : <Play size={28} className="ml-1" />}
+          {playing ? <Pause size={28} /> : <Play size={28} className="ml-1" />}
         </motion.button>
         <motion.button type="button" onClick={player.nextTale} className="p-2 text-ink-600" aria-label="Следующая сказка" {...tapSpring}>
           <SkipForward size={24} />
