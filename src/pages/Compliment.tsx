@@ -4,19 +4,23 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
 import { Sticker } from '@/components/ui/Sticker'
 import { getComplimentsPool } from '@/data/content'
-import { pickPhrase, randomPhraseSeed } from '@/lib/placeholders'
+import { pickPhrase, pickRandomPhrase } from '@/lib/placeholders'
 import { getMoscowDateKey } from '@/lib/time'
 
 export default function Compliment() {
   const dateKey = getMoscowDateKey()
   const pool = getComplimentsPool()
   const [revealed, setRevealed] = useState(false)
-  const [extraSeed, setExtraSeed] = useState<string | null>(null)
+  const [text, setText] = useState('')
 
-  const dailyText = pickPhrase(pool, dateKey, dateKey)
-  const text = extraSeed ? pickPhrase(pool, extraSeed, extraSeed) : dailyText
+  const handleReveal = () => {
+    setText(pickPhrase(pool, dateKey, dateKey))
+    setRevealed(true)
+  }
 
-  const handleAnother = () => setExtraSeed(randomPhraseSeed('compliment'))
+  const handleAnother = () => {
+    setText(pickRandomPhrase(pool))
+  }
 
   return (
     <div className="page-container">
@@ -25,10 +29,12 @@ export default function Compliment() {
         <Sticker name="bouquet" size={64} className="mx-auto mb-4" />
         <h1 className="font-display text-2xl font-bold text-ink-900 mb-6">Букетик комплиментов</h1>
         {!revealed ? (
-          <PillButton onClick={() => setRevealed(true)}>Сегодняшний комплимент</PillButton>
+          <PillButton onClick={handleReveal}>Сегодняшний комплимент</PillButton>
         ) : (
           <div>
-            <GlassCard pink className="text-lg leading-relaxed" animate={false}>{text}</GlassCard>
+            <GlassCard pink className="text-lg leading-relaxed" animate={false} key={text}>
+              {text}
+            </GlassCard>
             <PillButton variant="secondary" className="mt-4" onClick={handleAnother}>
               Ещё комплимент
             </PillButton>

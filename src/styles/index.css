@@ -1,94 +1,95 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@layer base {
-  html {
-    -webkit-tap-highlight-color: transparent;
-    height: 100%;
-    background-color: #FFCFE0;
-  }
-  body {
-    @apply font-body text-ink-700 antialiased;
-    min-height: 100dvh;
-    background-color: #FFCFE0;
-    -webkit-overflow-scrolling: touch;
-  }
-  #root {
-    min-height: 100dvh;
-  }
-  .app-bg {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    background: linear-gradient(to bottom, #FFF8FB 0%, #FFF0F5 40%, #FFE0EC 70%, #FFCFE0 100%);
-  }
-  img {
-    -webkit-user-drag: none;
-  }
-}
-
-@layer components {
-  .glass {
-    background: rgba(255, 255, 255, 0.62);
-    backdrop-filter: blur(12px) saturate(150%);
-    -webkit-backdrop-filter: blur(12px) saturate(150%);
-    @apply border border-white/60 shadow-glass;
-  }
-  .glass-pink {
-    background: rgba(255, 224, 236, 0.5);
-    backdrop-filter: blur(12px) saturate(150%);
-    -webkit-backdrop-filter: blur(12px) saturate(150%);
-    @apply border border-white/50 shadow-glass;
-  }
-  .page-container {
-    @apply pb-24 px-4 max-w-lg mx-auto;
-    padding-top: max(calc(env(safe-area-inset-top) + 2.5rem), 3.25rem);
-  }
-  .page-container--fit {
-    padding-top: max(calc(env(safe-area-inset-top) + 2.5rem), 3.25rem);
-    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
-    min-height: auto;
-    overflow-x: hidden;
-  }
-  .has-mini-player .page-container {
-    padding-bottom: calc(8.75rem + env(safe-area-inset-bottom, 0px));
-  }
-  .cat-sway {
-    animation: cat-sway 4.5s ease-in-out infinite;
-    will-change: transform;
-  }
-  @keyframes cat-sway {
-    0%, 100% { transform: translateX(0); }
-    50% { transform: translateX(7px); }
-  }
-  .pb-safe {
-    padding-bottom: max(env(safe-area-inset-bottom), 16px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-.audio-progress-input {
-  margin: 0;
-  -webkit-appearance: none;
-  appearance: none;
-}
-.audio-progress-input::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
-}
-.audio-progress-input::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  border: none;
-  background: transparent;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    height: 100%;
+    background-color: #FFCFE0;
+  }
+  body {
+    @apply font-body text-ink-700 antialiased;
+    min-height: 100dvh;
+    background-color: #FFCFE0;
+  }
+  #root {
+    min-height: 100dvh;
+  }
+  .app-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(to bottom, #FFF8FB 0%, #FFF0F5 40%, #FFE0EC 70%, #FFCFE0 100%);
+  }
+  img {
+    -webkit-user-drag: none;
+  }
+}
+
+@layer components {
+  .app-shell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+  .app-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: auto;
+  }
+  .app-nav {
+    flex-shrink: 0;
+  }
+  .glass {
+    background: rgba(255, 255, 255, 0.62);
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    @apply border border-white/60 shadow-glass;
+  }
+  .glass-pink {
+    background: rgba(255, 224, 236, 0.5);
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    @apply border border-white/50 shadow-glass;
+  }
+  .page-container {
+    @apply pb-24 px-4 max-w-lg mx-auto;
+    padding-top: max(calc(env(safe-area-inset-top) + 2.5rem), 3.25rem);
+  }
+  .page-container--fit {
+    padding-top: max(calc(env(safe-area-inset-top) + 2.5rem), 3.25rem);
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+    min-height: auto;
+    overflow-x: hidden;
+  }
+  .has-mini-player .page-container {
+    padding-bottom: calc(8.75rem + env(safe-area-inset-bottom, 0px));
+  }
+  .cat-sway {
+    animation: cat-sway 4.5s ease-in-out infinite;
+    will-change: transform;
+  }
+  @keyframes cat-sway {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(7px); }
+  }
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom), 16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

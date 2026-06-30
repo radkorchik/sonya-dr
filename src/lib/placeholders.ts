@@ -1,4 +1,4 @@
-import { hashSeed, pickBySeed } from '@/lib/seed'
+import { hashSeed, pickBySeed, pickRandom } from '@/lib/seed'
 import { getPetNamesPool } from '@/data/content'
 
 const FALLBACK_PET_NAMES = [
@@ -34,10 +34,33 @@ export function fillPlaceholders(text: string, seed: string): string {
     .replace(/\{date\}/g, new Date().toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' }))
 }
 
+/** Adds a pet name to phrases that only use «ты» without {name} */
+export function personalizePhrase(text: string, seed: string): string {
+  const hadPlaceholder = /\{name\}|\{Name\}/.test(text)
+  let result = fillPlaceholders(text, seed)
+  if (hadPlaceholder) return result
+
+  const name = getPetName(seed + ':vocative')
+  const cap = name.charAt(0).toUpperCase() + name.slice(1)
+
+  if (/^Ты\b/u.test(result)) {
+    return result.replace(/^Ты\b/u, `${cap}, ты`)
+  }
+  if (/^ты\b/u.test(result)) {
+    return result.replace(/^ты\b/u, `${name}, ты`)
+  }
+  return `${cap}, ${result.charAt(0).toLowerCase()}${result.slice(1)}`
+}
+
 export function pickPhrase(pool: string[], phraseSeed: string, nameSeed?: string): string {
-  if (pool.length === 0) return 'Ты самая лучшая, {name}!'
+  if (pool.length === 0) return personalizePhrase('Ты самая лучшая!', nameSeed ?? phraseSeed)
   const phrase = pickBySeed(pool, phraseSeed)
-  return fillPlaceholders(phrase, nameSeed ?? phraseSeed)
+  return personalizePhrase(phrase, nameSeed ?? phraseSeed)
+}
+
+export function pickRandomPhrase(pool: string[]): string {
+  if (pool.length === 0) return personalizePhrase('Ты самая лучшая!', randomPhraseSeed('n'))
+  return personalizePhrase(pickRandom(pool), randomPhraseSeed('n'))
 }
 
 export function randomPhraseSeed(prefix: string): string {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { BottomNav } from '@/components/ui/BottomNav'
@@ -24,6 +24,7 @@ function AnimatedOutlet() {
 }
 
 function LayoutBody() {
+  const scrollRef = useRef<HTMLElement>(null)
   const [splashDone, setSplashDone] = useState(false)
   const player = usePlayerOptional()
   const hasMiniPlayer = !!player?.tale && player.miniVisible
@@ -33,8 +34,11 @@ function LayoutBody() {
       <FallingParticles />
       <Toast />
       {!splashDone && <WelcomeSplash onDone={() => setSplashDone(true)} />}
-      <PullToRefresh>
-        <main className={`relative z-10 ${hasMiniPlayer ? 'has-mini-player' : ''}`}>
+      <PullToRefresh scrollRef={scrollRef}>
+        <main
+          ref={scrollRef}
+          className={`app-scroll relative z-10 ${hasMiniPlayer ? 'has-mini-player' : ''}`}
+        >
           <AnimatedOutlet />
         </main>
       </PullToRefresh>
@@ -45,7 +49,7 @@ function LayoutBody() {
 
 export function AppLayout() {
   return (
-    <div className="relative min-h-dvh">
+    <div className="app-shell">
       <div className="app-bg" aria-hidden />
       <PlayerProvider>
         <LayoutBody />

@@ -1,13 +1,14 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface PullToRefreshProps {
   children: ReactNode
+  scrollRef: RefObject<HTMLElement | null>
 }
 
 const THRESHOLD = 68
 
-export function PullToRefresh({ children }: PullToRefreshProps) {
+export function PullToRefresh({ children, scrollRef }: PullToRefreshProps) {
   const [pull, setPull] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
   const startY = useRef(0)
@@ -20,7 +21,10 @@ export function PullToRefresh({ children }: PullToRefreshProps) {
   }, [refreshing])
 
   useEffect(() => {
-    const atTop = () => window.scrollY <= 1
+    const atTop = () => {
+      const el = scrollRef.current
+      return el ? el.scrollTop <= 1 : window.scrollY <= 1
+    }
 
     const onStart = (e: TouchEvent) => {
       if (refreshingRef.current || !atTop()) return
@@ -63,7 +67,7 @@ export function PullToRefresh({ children }: PullToRefreshProps) {
       document.removeEventListener('touchend', onEnd)
       document.removeEventListener('touchcancel', onEnd)
     }
-  }, [])
+  }, [scrollRef])
 
   const progress = Math.min(1, pull / THRESHOLD)
 

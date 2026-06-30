@@ -4,16 +4,15 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
 import { Sticker } from '@/components/ui/Sticker'
 import { getMissYouPool } from '@/data/content'
-import { pickPhrase, randomPhraseSeed } from '@/lib/placeholders'
+import { pickRandomPhrase } from '@/lib/placeholders'
 
 export default function MissYou() {
   const [shown, setShown] = useState(false)
-  const [seed, setSeed] = useState(() => randomPhraseSeed('miss'))
+  const [message, setMessage] = useState('')
   const pool = getMissYouPool()
-  const message = pickPhrase(pool, seed, seed)
 
   const handleClick = () => {
-    setSeed(randomPhraseSeed('miss'))
+    setMessage(pickRandomPhrase(pool))
     setShown(true)
   }
 
@@ -28,7 +27,7 @@ export default function MissYou() {
         ) : (
           <div>
             <img src="/stickers/sticker8.webp" alt="Обнимашки" className="rounded-2xl mx-auto max-h-48 object-contain mb-4" />
-            <GlassCard pink className="text-lg mb-4 leading-relaxed" animate={false}>{message}</GlassCard>
+            <GlassCard pink className="text-lg mb-4 leading-relaxed" animate={false} key={message}>{message}</GlassCard>
             <PillButton variant="secondary" className="mt-4" onClick={handleClick}>Ещё раз</PillButton>
           </div>
         )}

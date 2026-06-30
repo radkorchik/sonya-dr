@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -10,14 +10,33 @@ interface MediaViewerProps {
   onClose: () => void
 }
 
+function lockScroll() {
+  const scrollEl = document.querySelector('.app-scroll') as HTMLElement | null
+  const top = scrollEl?.scrollTop ?? window.scrollY
+  document.body.dataset.viewerScroll = String(top)
+  document.body.style.overflow = 'hidden'
+  if (scrollEl) scrollEl.style.overflow = 'hidden'
+  return () => {
+    const saved = Number(document.body.dataset.viewerScroll ?? 0)
+    delete document.body.dataset.viewerScroll
+    document.body.style.overflow = ''
+    if (scrollEl) {
+      scrollEl.style.overflow = ''
+      scrollEl.scrollTop = saved
+    }
+  }
+}
+
 export function MediaViewer({ src, alt = '', onClose }: MediaViewerProps) {
+  const unlockRef = useRef<(() => void) | null>(null)
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
+    unlockRef.current = lockScroll()
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
+      unlockRef.current?.()
     }
   }, [onClose])
 
@@ -27,22 +46,34 @@ export function MediaViewer({ src, alt = '', onClose }: MediaViewerProps) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.28 }}
-        className="fixed inset-0 z-[300] flex flex-col items-center justify-center px-4 pt-[max(env(safe-area-inset-top),12px)]"
+      className="fixed inset-0 z-[300] touch-none overscroll-none overflow-hidden"
+      style={{ background: 'rgba(45, 28, 38, 0.9)' }}
+      onClick={onClose}
+    >
+      <div
+        className="pointer-events-none absolute -top-24 left-0 right-0 h-24"
+        style={{ background: 'rgba(45, 28, 38, 0.9)' }}
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -bottom-24 left-0 right-0 h-24"
+        style={{ background: 'rgba(45, 28, 38, 0.9)' }}
+        aria-hidden
+      />
+
+      <div
+        className="absolute inset-0 flex flex-col items-center justify-center px-4"
         style={{
-          minHeight: '100dvh',
-          height: '100dvh',
-          background: 'rgba(45, 28, 38, 0.78)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
+          paddingTop: 'max(env(safe-area-inset-top), 16px)',
+          paddingBottom: 'max(env(safe-area-inset-bottom), 16px)',
         }}
-        onClick={onClose}
       >
         <motion.img
           {...popIn}
           src={src}
           alt={alt}
-          className="max-w-full max-h-[min(calc(100dvh-11rem),640px)] rounded-2xl object-contain shadow-soft"
+          draggable={false}
+          className="max-w-full max-h-[min(72dvh,640px)] rounded-2xl object-contain shadow-soft select-none"
           onClick={e => e.stopPropagation()}
         />
         <motion.button
@@ -58,6 +89,7 @@ export function MediaViewer({ src, alt = '', onClose }: MediaViewerProps) {
           <X size={16} />
           Закрыть
         </motion.button>
+      </div>
     </motion.div>,
     document.body,
   )

@@ -11,6 +11,11 @@ export function pickBySeed<T>(items: T[], seed: string): T {
   return items[hashSeed(seed) % items.length]
 }
 
+export function pickRandom<T>(items: T[]): T {
+  if (items.length === 0) throw new Error('Empty pool')
+  return items[Math.floor(Math.random() * items.length)]
+}
+
 export function pickIndexBySeed(length: number, seed: string): number {
   if (length === 0) return 0
   return hashSeed(seed) % length
