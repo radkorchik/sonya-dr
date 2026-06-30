@@ -150,7 +150,17 @@ export default function TalePlayer() {
     }, 420)
   }
 
-  const handleDelete = async () => {
+  const handleSleepTimer = (m: number) => {
+    setSleepMin(prev => {
+      if (prev === m) {
+        showToast('Таймер сна отменён')
+        return null
+      }
+      showToast(`Сказка остановится через ${m} мин`)
+      return m
+    })
+  }
+
     if (!tale || !confirm('Удалить сказку?')) return
     if (player.tale?.id === tale.id) player.stop()
     await deleteTale(tale.id)
@@ -244,7 +254,7 @@ export default function TalePlayer() {
           <motion.button
             key={m}
             type="button"
-            onClick={() => setSleepMin(prev => (prev === m ? null : m))}
+            onClick={() => handleSleepTimer(m)}
             className={`glass rounded-full px-4 py-2 text-sm min-h-[44px] ${sleepMin === m ? 'ring-2 ring-pink-400' : ''}`}
             {...tapSpring}
           >
