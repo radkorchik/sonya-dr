@@ -5,6 +5,7 @@ import { BottomNav } from '@/components/ui/BottomNav'
 import { FallingParticles } from '@/components/effects/FallingParticles'
 import { Toast } from '@/components/ui/Toast'
 import { WelcomeSplash } from '@/components/layout/WelcomeSplash'
+import { PullToRefresh } from '@/components/layout/PullToRefresh'
 import { PlayerProvider, usePlayerOptional } from '@/components/player/PlayerContext'
 import { pageTransition } from '@/components/motion/presets'
 
@@ -25,16 +26,18 @@ function AnimatedOutlet() {
 function LayoutBody() {
   const [splashDone, setSplashDone] = useState(false)
   const player = usePlayerOptional()
-  const hasMiniPlayer = !!player?.tale
+  const hasMiniPlayer = !!player?.tale && player.miniVisible
 
   return (
     <>
       <FallingParticles />
       <Toast />
       {!splashDone && <WelcomeSplash onDone={() => setSplashDone(true)} />}
-      <main className={`relative z-10 ${hasMiniPlayer ? 'has-mini-player' : ''}`}>
-        <AnimatedOutlet />
-      </main>
+      <PullToRefresh>
+        <main className={`relative z-10 ${hasMiniPlayer ? 'has-mini-player' : ''}`}>
+          <AnimatedOutlet />
+        </main>
+      </PullToRefresh>
       <BottomNav />
     </>
   )

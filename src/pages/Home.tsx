@@ -66,7 +66,7 @@ export default function Home() {
       </FadeIn>
 
       <div
-        className="sticky z-20 -mx-1 px-1 pb-2"
+        className="sticky z-20 -mx-1 px-1 pb-2 will-change-auto"
         style={{ top: 'max(env(safe-area-inset-top), 8px)' }}
       >
         <GlassCard pink className="text-center shadow-soft" animate={false}>

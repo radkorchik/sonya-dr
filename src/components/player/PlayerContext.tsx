@@ -18,6 +18,7 @@ interface PlayerState {
   duration: number
   volume: number
   speed: number
+  miniVisible: boolean
 }
 
 export interface PlayerApi extends PlayerState {
@@ -32,6 +33,7 @@ export interface PlayerApi extends PlayerState {
   prevTale: () => void
   setVolume: (v: number) => void
   setSpeed: (s: number) => void
+  hideMini: () => void
   stop: () => void
 }
 
@@ -46,6 +48,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const lastSave = useRef(0)
   const taleIdRef = useRef<string | null>(null)
   const talesListRef = useRef<PlayerTale[]>([])
+  const taleRef = useRef<PlayerTale | null>(null)
   const [state, setState] = useState<PlayerState>(() => ({
     tale: null,
     playing: false,
@@ -53,7 +56,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     duration: 0,
     volume: Number(localStorage.getItem(VOLUME_KEY) ?? 0.85),
     speed: 1,
+    miniVisible: true,
   }))
+
+  useEffect(() => {
+    taleRef.current = state.tale
+  }, [state.tale])
 
   useEffect(() => {
     const audio = audioRef.current
@@ -71,48 +79,66 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     talesListRef.current = tales
   }, [])
 
+  const ensureAudioLoaded = useCallback((tale: PlayerTale, seekTo = 0) => {
+    const audio = audioRef.current
+    if (!audio) return false
+
+    const needsLoad = taleIdRef.current !== tale.id || !audio.src
+    if (!needsLoad) {
+      if (seekTo > 0) audio.currentTime = seekTo
+      return true
+    }
+
+    taleIdRef.current = tale.id
+    audio.src = tale.audioUrl
+    const applySeek = () => { audio.currentTime = seekTo }
+    if (audio.readyState >= 1) applySeek()
+    else audio.addEventListener('loadedmetadata', applySeek, { once: true })
+    audio.load()
+    return true
+  }, [])
+
   const loadTale = useCallback((tale: PlayerTale, opts?: { autoplay?: boolean; seekTo?: number }) => {
     const audio = audioRef.current
     if (!audio) return
 
     taleIdRef.current = tale.id
+    const seek = opts?.seekTo ?? 0
+    const same = taleRef.current?.id === tale.id
 
-    setState(prev => {
-      const same = prev.tale?.id === tale.id
-      if (same) {
-        if (opts?.seekTo != null) audio.currentTime = opts.seekTo
-        if (opts?.autoplay) void audio.play().catch(() => {})
-        return {
-          ...prev,
-          tale,
-          playing: opts?.autoplay ? true : prev.playing,
-          current: opts?.seekTo ?? audio.currentTime,
-        }
-      }
-
-      audio.src = tale.audioUrl
-      const seek = opts?.seekTo ?? 0
-      const applySeek = () => { audio.currentTime = seek }
-      if (audio.readyState >= 1) applySeek()
-      else audio.addEventListener('loadedmetadata', applySeek, { once: true })
-      audio.load()
-
+    if (same && audio.src) {
+      if (opts?.seekTo != null) audio.currentTime = opts.seekTo
       if (opts?.autoplay) void audio.play().catch(() => {})
-
-      return {
+      setState(prev => ({
         ...prev,
         tale,
-        playing: !!opts?.autoplay,
-        current: seek,
-        duration: tale.durationSec,
-      }
-    })
-  }, [])
+        miniVisible: true,
+        playing: opts?.autoplay ? true : prev.playing,
+        current: opts?.seekTo ?? audio.currentTime,
+      }))
+      return
+    }
+
+    ensureAudioLoaded(tale, seek)
+    if (opts?.autoplay) void audio.play().catch(() => {})
+
+    setState(prev => ({
+      ...prev,
+      tale,
+      miniVisible: true,
+      playing: !!opts?.autoplay,
+      current: seek,
+      duration: tale.durationSec,
+    }))
+  }, [ensureAudioLoaded])
 
   const play = useCallback(() => {
-    void audioRef.current?.play().catch(() => {})
-    setState(p => ({ ...p, playing: true }))
-  }, [])
+    const audio = audioRef.current
+    const tale = taleRef.current
+    if (audio && tale && !audio.src) ensureAudioLoaded(tale, audio.currentTime || 0)
+    void audio?.play().catch(() => {})
+    setState(p => ({ ...p, playing: true, miniVisible: true }))
+  }, [ensureAudioLoaded])
 
   const pause = useCallback(() => {
     audioRef.current?.pause()
@@ -121,14 +147,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const toggle = useCallback(() => {
     setState(p => {
+      const audio = audioRef.current
+      const tale = taleRef.current
       if (p.playing) {
-        audioRef.current?.pause()
+        audio?.pause()
         return { ...p, playing: false }
       }
-      void audioRef.current?.play().catch(() => {})
-      return { ...p, playing: true }
+      if (audio && tale && !audio.src) ensureAudioLoaded(tale, audio.currentTime || p.current)
+      void audio?.play().catch(() => {})
+      return { ...p, playing: true, miniVisible: true }
     })
-  }, [])
+  }, [ensureAudioLoaded])
 
   const seek = useCallback((sec: number) => {
     const audio = audioRef.current
@@ -166,6 +195,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setState(p => ({ ...p, speed: s }))
   }, [])
 
+  const hideMini = useCallback(() => {
+    audioRef.current?.pause()
+    setState(p => ({ ...p, playing: false, miniVisible: false }))
+  }, [])
+
   const stop = useCallback(() => {
     const audio = audioRef.current
     if (audio) {
@@ -174,7 +208,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.load()
     }
     taleIdRef.current = null
-    setState(p => ({ ...p, tale: null, playing: false, current: 0, duration: 0 }))
+    setState(p => ({ ...p, tale: null, playing: false, current: 0, duration: 0, miniVisible: true }))
   }, [])
 
   const api = useMemo<PlayerApi>(() => ({
@@ -190,8 +224,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     prevTale,
     setVolume,
     setSpeed,
+    hideMini,
     stop,
-  }), [state, loadTale, setTalesList, toggle, play, pause, seek, restart, nextTale, prevTale, setVolume, setSpeed, stop])
+  }), [state, loadTale, setTalesList, toggle, play, pause, seek, restart, nextTale, prevTale, setVolume, setSpeed, hideMini, stop])
 
   return (
     <PlayerContext.Provider value={api}>
@@ -210,12 +245,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             savePlayPosition(tid, sec)
           }
         }}
-        onPlay={() => setState(p => ({ ...p, playing: true }))}
+        onPlay={() => setState(p => ({ ...p, playing: true, miniVisible: true }))
+        }
         onPause={() => setState(p => ({ ...p, playing: false }))}
         onEnded={() => setState(p => ({ ...p, playing: false }))}
       />
       {children}
-      <MiniPlayerBar api={api} />
+      {state.tale && state.miniVisible && <MiniPlayerBar api={api} />}
     </PlayerContext.Provider>
   )
 }

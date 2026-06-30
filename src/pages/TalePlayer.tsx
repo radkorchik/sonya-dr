@@ -47,7 +47,7 @@ export default function TalePlayer() {
       setTale(t)
       const hist = getPlayHistory()[id]
       const seekTo = hist?.positionSec ?? 0
-      if (player.tale?.id !== t.id) {
+      if (!player.tale || player.tale.id !== t.id) {
         player.loadTale({
           id: t.id,
           title: t.title,
@@ -58,6 +58,23 @@ export default function TalePlayer() {
       }
     })
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleToggle = () => {
+    if (!tale) return
+    if (!player.tale) {
+      const hist = getPlayHistory()[tale.id]
+      const seekTo = hist?.positionSec ?? 0
+      player.loadTale({
+        id: tale.id,
+        title: tale.title,
+        coverUrl: tale.coverUrl,
+        audioUrl: tale.audioUrl,
+        durationSec: tale.durationSec,
+      }, { seekTo, autoplay: true })
+      return
+    }
+    player.toggle()
+  }
 
   useEffect(() => {
     player.setSpeed(PLAYER_SPEEDS[speedIdx])
@@ -146,7 +163,7 @@ export default function TalePlayer() {
         </motion.button>
         <motion.button
           type="button"
-          onClick={player.toggle}
+          onClick={handleToggle}
           className="w-16 h-16 rounded-full bg-gradient-to-r from-pink-400 to-pink-500 text-white flex items-center justify-center shadow-glow"
           {...tapSpring}
         >
