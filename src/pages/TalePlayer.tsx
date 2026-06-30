@@ -161,6 +161,7 @@ export default function TalePlayer() {
     })
   }
 
+  const handleDelete = async () => {
     if (!tale || !confirm('Удалить сказку?')) return
     if (player.tale?.id === tale.id) player.stop()
     await deleteTale(tale.id)
