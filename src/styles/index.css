@@ -5,11 +5,23 @@
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+    height: 100%;
   }
   body {
-    @apply font-body text-ink-700 bg-cream antialiased;
+    @apply font-body text-ink-700 antialiased;
     min-height: 100dvh;
     overscroll-behavior: none;
+    background: transparent;
+  }
+  .app-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(to bottom, #FFF8FB 0%, #FFF0F5 40%, #FFE0EC 70%, #FFCFE0 100%);
+    min-height: 300vh;
+    top: -100vh;
   }
   img {
     -webkit-user-drag: none;
@@ -30,9 +42,25 @@
     @apply border border-white/50 shadow-glass;
   }
   .page-container {
-    @apply min-h-dvh pb-24 px-4 max-w-lg mx-auto;
-    padding-top: max(env(safe-area-inset-top), 16px);
-    contain: layout style;
+    @apply pb-24 px-4 max-w-lg mx-auto;
+    padding-top: max(calc(env(safe-area-inset-top) + 2.5rem), 3.25rem);
+  }
+  .page-container--fit {
+    padding-top: max(calc(env(safe-area-inset-top) + 2.5rem), 3.25rem);
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+    min-height: auto;
+    overflow-x: hidden;
+  }
+  .has-mini-player .page-container {
+    padding-bottom: calc(8.75rem + env(safe-area-inset-bottom, 0px));
+  }
+  .cat-sway {
+    animation: cat-sway 4.5s ease-in-out infinite;
+    will-change: transform;
+  }
+  @keyframes cat-sway {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(7px); }
   }
   .pb-safe {
     padding-bottom: max(env(safe-area-inset-bottom), 16px);

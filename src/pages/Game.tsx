@@ -3,6 +3,7 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
 import { Sticker } from '@/components/ui/Sticker'
 import { getStickerImage, preloadStickers } from '@/lib/stickers'
+import { playRandomMeow } from '@/lib/sounds'
 
 const W = 320
 const H = 420
@@ -30,6 +31,9 @@ export default function Game() {
     lives: 3,
     lastSpawn: 0,
     playing: false,
+    catBounce: 0,
+    catLean: 0,
+    frame: 0,
   })
 
   const draw = useCallback(() => {
@@ -39,7 +43,6 @@ export default function Game() {
     if (!ctx) return
     const s = state.current
 
-    // фон
     const grad = ctx.createLinearGradient(0, 0, 0, H)
     grad.addColorStop(0, '#FFF0F5')
     grad.addColorStop(0.5, '#FFE0EC')
@@ -47,7 +50,6 @@ export default function Game() {
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, W, H)
 
-    // предметы
     for (const item of s.items) {
       const img = getStickerImage(item.type === 'heart' ? 'laceHeart' : 'bow')
       if (img?.complete) {
@@ -55,16 +57,33 @@ export default function Game() {
       }
     }
 
-    // котик
     const catImg = getStickerImage('cat')
     if (catImg?.complete) {
-      ctx.drawImage(catImg, s.catX, H - CAT_SIZE - 20, CAT_SIZE, CAT_SIZE)
+      const baseY = H - CAT_SIZE - 20
+      const idleBob = s.playing ? Math.sin(s.frame / 12) * 2 : 0
+      const bounceY = -14 * s.catBounce + idleBob
+      const scale = 1 + 0.2 * s.catBounce
+      const lean = s.catLean * s.catBounce
+
+      ctx.save()
+      ctx.translate(s.catX + CAT_SIZE / 2, baseY + CAT_SIZE / 2 + bounceY)
+      ctx.rotate(lean)
+      ctx.scale(scale, scale)
+      ctx.drawImage(catImg, -CAT_SIZE / 2, -CAT_SIZE / 2, CAT_SIZE, CAT_SIZE)
+      ctx.restore()
     }
   }, [])
 
   const loop = useCallback((now: number) => {
     const s = state.current
     if (!s.playing) return
+
+    s.frame++
+
+    if (s.catBounce > 0) {
+      s.catBounce = Math.max(0, s.catBounce - 0.07)
+      if (s.catBounce === 0) s.catLean = 0
+    }
 
     if (now - s.lastSpawn > 700) {
       s.items.push({
@@ -87,6 +106,9 @@ export default function Game() {
         cx > s.catX - 10 && cx < s.catX + CAT_SIZE + 10
       ) {
         s.score++
+        s.catBounce = 1
+        s.catLean = cx < s.catX + CAT_SIZE / 2 ? -0.18 : 0.18
+        playRandomMeow()
         continue
       }
       if (item.y > H) {
@@ -127,6 +149,9 @@ export default function Game() {
       lives: 3,
       lastSpawn: performance.now(),
       playing: true,
+      catBounce: 0,
+      catLean: 0,
+      frame: 0,
     }
     setScore(0)
     setLives(3)

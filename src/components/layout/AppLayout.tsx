@@ -1,17 +1,52 @@
-import { Outlet } from 'react-router-dom'
+import { useState } from 'react'
+import { Outlet, useLocation } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { BottomNav } from '@/components/ui/BottomNav'
 import { FallingParticles } from '@/components/effects/FallingParticles'
 import { Toast } from '@/components/ui/Toast'
+import { WelcomeSplash } from '@/components/layout/WelcomeSplash'
+import { PlayerProvider, usePlayerOptional } from '@/components/player/PlayerContext'
+import { pageTransition } from '@/components/motion/presets'
+
+function AnimatedOutlet() {
+  const location = useLocation()
+  return (
+    <motion.div
+      key={location.pathname}
+      initial={pageTransition.initial}
+      animate={pageTransition.animate}
+      transition={pageTransition.transition}
+    >
+      <Outlet />
+    </motion.div>
+  )
+}
+
+function LayoutBody() {
+  const [splashDone, setSplashDone] = useState(false)
+  const player = usePlayerOptional()
+  const hasMiniPlayer = !!player?.tale
+
+  return (
+    <>
+      <FallingParticles />
+      <Toast />
+      {!splashDone && <WelcomeSplash onDone={() => setSplashDone(true)} />}
+      <main className={`relative z-10 ${hasMiniPlayer ? 'has-mini-player' : ''}`}>
+        <AnimatedOutlet />
+      </main>
+      <BottomNav />
+    </>
+  )
+}
 
 export function AppLayout() {
   return (
-    <div className="relative min-h-dvh bg-gradient-to-b from-cream via-blush-50 to-blush-100">
-      <FallingParticles />
-      <Toast />
-      <main className="relative z-10">
-        <Outlet />
-      </main>
-      <BottomNav />
+    <div className="relative min-h-dvh">
+      <div className="app-bg" aria-hidden />
+      <PlayerProvider>
+        <LayoutBody />
+      </PlayerProvider>
     </div>
   )
 }

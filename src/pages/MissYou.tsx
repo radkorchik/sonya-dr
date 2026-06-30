@@ -4,16 +4,16 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { PillButton } from '@/components/ui/PillButton'
 import { Sticker } from '@/components/ui/Sticker'
 import { getMissYouPool } from '@/data/content'
-import { pickBySeed } from '@/lib/seed'
-import { fillPlaceholders } from '@/lib/placeholders'
+import { pickPhrase, randomPhraseSeed } from '@/lib/placeholders'
 
 export default function MissYou() {
   const [shown, setShown] = useState(false)
-  const [seed, setSeed] = useState(0)
-  const message = fillPlaceholders(pickBySeed(getMissYouPool(), String(seed)), String(seed))
+  const [seed, setSeed] = useState(() => randomPhraseSeed('miss'))
+  const pool = getMissYouPool()
+  const message = pickPhrase(pool, seed, seed)
 
   const handleClick = () => {
-    setSeed(s => s + 1)
+    setSeed(randomPhraseSeed('miss'))
     setShown(true)
   }
 
@@ -28,11 +28,7 @@ export default function MissYou() {
         ) : (
           <div>
             <img src="/stickers/sticker8.webp" alt="Обнимашки" className="rounded-2xl mx-auto max-h-48 object-contain mb-4" />
-            <GlassCard pink className="text-lg mb-4">{message}</GlassCard>
-            <p className="text-ink-700 font-semibold flex items-center justify-center gap-2 flex-wrap">
-              Я тоже по тебе очень скучаю, моя девочка, не переживай, люблю тебя!
-              <Sticker name="laceHeart" size={22} />
-            </p>
+            <GlassCard pink className="text-lg mb-4 leading-relaxed" animate={false}>{message}</GlassCard>
             <PillButton variant="secondary" className="mt-4" onClick={handleClick}>Ещё раз</PillButton>
           </div>
         )}

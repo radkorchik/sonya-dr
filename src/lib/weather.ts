@@ -19,8 +19,12 @@ export interface WeatherResult {
   message: string
 }
 
-const CACHE_KEY = 'sonya_weather_v3'
+const CACHE_KEY = 'sonya_weather_v4'
+const CITY_KEY = 'sonya_weather_primary_city'
 const CACHE_TTL = 30 * 60 * 1000
+
+export const WEATHER_CITIES = ['Горячий Ключ', 'Краснодар'] as const
+export type WeatherCity = (typeof WEATHER_CITIES)[number]
 
 /** Название в предложном падеже для «в …» */
 const CITY_PREP: Record<string, string> = {
@@ -57,6 +61,21 @@ function cityInPrep(nominative: string): string {
   return CITY_PREP[nominative] ?? nominative
 }
 
+export function getPrimaryCity(): WeatherCity {
+  const saved = localStorage.getItem(CITY_KEY)
+  if (saved === 'Краснодар' || saved === 'Горячий Ключ') return saved
+  return 'Горячий Ключ'
+}
+
+export function setPrimaryCity(city: WeatherCity): void {
+  localStorage.setItem(CITY_KEY, city)
+  localStorage.removeItem(CACHE_KEY)
+}
+
+export function getSecondaryCity(): WeatherCity {
+  return getPrimaryCity() === 'Горячий Ключ' ? 'Краснодар' : 'Горячий Ключ'
+}
+
 async function fetchCityWeather(cityName: string, data: WeatherJson): Promise<WeatherResult> {
   const city = data.cities[cityName]
   const cityPrep = cityInPrep(cityName)
@@ -87,41 +106,57 @@ async function fetchCityWeather(cityName: string, data: WeatherJson): Promise<We
   }
 }
 
+function fallbackWeather(cityName: WeatherCity): WeatherResult {
+  const prep = cityInPrep(cityName)
+  return {
+    city: cityName,
+    cityPrep: prep,
+    temp: 0,
+    code: 0,
+    category: 'cloudy',
+    sticker: 'lily',
+    message: fillPlaceholders(`Погода в ${prep} особенная, как ты, {name}! Одевайся по настроению`, getMoscowDateKey()),
+  }
+}
+
 export async function fetchWeather(): Promise<WeatherResult> {
-  const cached = localStorage.getItem(CACHE_KEY)
+  const primaryCity = getPrimaryCity()
+  const cacheKey = `${CACHE_KEY}_${primaryCity}`
+  const cached = localStorage.getItem(cacheKey)
   if (cached) {
     const parsed: WeatherCache = JSON.parse(cached)
     if (Date.now() - parsed.ts < CACHE_TTL) return parsed.data
   }
 
   const data = weatherData as WeatherJson
-  const primaryCity = 'Горячий Ключ'
 
   try {
     const result = await fetchCityWeather(primaryCity, data)
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ data: result, ts: Date.now() }))
+    localStorage.setItem(cacheKey, JSON.stringify({ data: result, ts: Date.now() }))
     return result
   } catch {
-    const prep = cityInPrep(primaryCity)
-    return {
-      city: primaryCity,
-      cityPrep: prep,
-      temp: 0,
-      code: 0,
-      category: 'cloudy',
-      sticker: 'lily',
-      message: fillPlaceholders(`Погода в ${prep} особенная, как ты, {name}! Одевайся по настроению`, getMoscowDateKey()),
-    }
+    return fallbackWeather(primaryCity)
   }
 }
 
-/** Погода для второго города (Краснодар) — для расширения */
-export async function fetchKrasnodarWeather(): Promise<WeatherResult | null> {
+export async function fetchSecondaryWeather(): Promise<WeatherResult | null> {
+  const cityName = getSecondaryCity()
   const data = weatherData as WeatherJson
-  if (!data.cities['Краснодар']) return null
+  if (!data.cities[cityName]) return null
   try {
-    return await fetchCityWeather('Краснодар', data)
+    return await fetchCityWeather(cityName, data)
   } catch {
-    return null
+    return fallbackWeather(cityName)
   }
+}
+
+/** @deprecated use fetchSecondaryWeather */
+export async function fetchKrasnodarWeather(): Promise<WeatherResult | null> {
+  return fetchSecondaryWeather()
+}
+
+export function swapPrimaryCity(): WeatherCity {
+  const next = getSecondaryCity()
+  setPrimaryCity(next)
+  return next
 }

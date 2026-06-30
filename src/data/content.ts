@@ -15,6 +15,11 @@ export function getGreetingPool(period: GreetingPeriod): string[] {
   return g[period] ?? []
 }
 
+export function getPetNamesPool(): string[] {
+  const data = compliments as { pet_names?: { list?: string[] } }
+  return data.pet_names?.list ?? []
+}
+
 export function getComplimentsPool(): string[] {
   return (compliments as { compliments: string[] }).compliments
 }

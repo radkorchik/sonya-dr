@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import { motion } from 'framer-motion'
+import { tapSpring } from '@/components/motion/presets'
 
 interface PillButtonProps {
   children: ReactNode
@@ -19,13 +21,14 @@ export function PillButton({
   }
 
   return (
-    <button
+    <motion.button
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className={`rounded-full px-6 py-3 font-semibold text-base min-h-[44px] active:scale-[0.97] transition-transform duration-100 ${variants[variant]} ${disabled ? 'opacity-50' : ''} ${className}`}
+      className={`rounded-full px-6 py-3 font-semibold text-base min-h-[44px] ${variants[variant]} ${disabled ? 'opacity-50' : ''} ${className}`}
+      {...tapSpring}
     >
       {children}
-    </button>
+    </motion.button>
   )
 }

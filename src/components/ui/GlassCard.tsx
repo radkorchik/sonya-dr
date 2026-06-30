@@ -1,28 +1,35 @@
 import type { ReactNode } from 'react'
+import { motion } from 'framer-motion'
+import { popIn, tapSpring } from '@/components/motion/presets'
 
 interface GlassCardProps {
   children: ReactNode
   className?: string
   onClick?: () => void
   pink?: boolean
+  animate?: boolean
 }
 
-export function GlassCard({ children, className = '', onClick, pink }: GlassCardProps) {
+export function GlassCard({ children, className = '', onClick, pink, animate = true }: GlassCardProps) {
   const base = pink ? 'glass-pink' : 'glass'
+  const motionAnim = animate ? { initial: popIn.initial, animate: popIn.animate, transition: popIn.transition } : {}
+
   if (onClick) {
     return (
-      <button
+      <motion.button
         type="button"
-        className={`${base} rounded-2xl p-4 cursor-pointer text-left w-full active:scale-[0.98] transition-transform duration-150 ${className}`}
+        className={`${base} rounded-2xl p-4 cursor-pointer text-left w-full ${className}`}
         onClick={onClick}
+        {...motionAnim}
+        whileTap={tapSpring.whileTap}
       >
         {children}
-      </button>
+      </motion.button>
     )
   }
   return (
-    <div className={`${base} rounded-2xl p-4 ${className}`}>
+    <motion.div className={`${base} rounded-2xl p-4 ${className}`} {...motionAnim}>
       {children}
-    </div>
+    </motion.div>
   )
 }

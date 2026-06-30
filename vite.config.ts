@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['caticon.jpg', 'favicon.svg', 'sounds/*'],
       manifest: {
         name: 'Соне',
         short_name: 'Соне',
@@ -19,12 +19,12 @@ export default defineConfig({
         orientation: 'portrait',
         start_url: '/',
         icons: [
-          { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' },
-          { src: '/pwa-512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' },
+          { src: '/caticon.jpg', sizes: '512x512', type: 'image/jpeg', purpose: 'any' },
+          { src: '/caticon.jpg', sizes: '512x512', type: 'image/jpeg', purpose: 'maskable' },
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,svg,woff2,json}'],
+        globPatterns: ['**/*.{js,css,html,ico,svg,jpg,jpeg,webp,woff2,json,m4a,mp3}'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\.open-meteo\.com\//,
