@@ -62,7 +62,7 @@ export default function AddTale() {
         <GlassInput placeholder="Описание" value={description} onChange={e => setDescription(e.target.value)} />
         <label className="block">
           <span className="text-sm text-ink-500">Аудио (mp3, m4a, wav…)</span>
-          <input type="file" accept="audio/*" className="mt-1 w-full text-sm" onChange={e => setAudioFile(e.target.files?.[0] ?? null)} />
+          <input type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac,.aac,.webm,audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/ogg" className="mt-1 w-full text-sm" onChange={e => setAudioFile(e.target.files?.[0] ?? null)} />
         </label>
         <label className="block">
           <span className="text-sm text-ink-500">Обложка (опционально)</span>
