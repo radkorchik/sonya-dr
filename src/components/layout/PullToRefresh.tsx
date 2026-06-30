@@ -88,7 +88,7 @@ export function PullToRefresh({ children, scrollRef }: PullToRefreshProps) {
             initial={{ opacity: 0, scale: 0.85 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.85 }}
-            className="fixed left-1/2 z-[60] pointer-events-none -translate-x-1/2"
+            className="fixed left-0 right-0 z-[60] flex justify-center pointer-events-none px-4"
             style={{ top: 'max(calc(env(safe-area-inset-top) + 8px), 16px)' }}
           >
             <div
